@@ -7,8 +7,8 @@ from dotenv import load_dotenv
 load_dotenv()
 
 # Load keys
-COGSVCS_CLIENTURL = os.environ["COGSVCS_CLIENTURL"]
-COGSVCS_KEY = os.environ["COGSVCS_KEY"]
+COGSVCS_CLIENTURL = 'https://maddogtest.cognitiveservices.azure.com/' #os.environ["COGSVCS_CLIENTURL"]
+COGSVCS_KEY = '00626d93ee1040e5a4695b97e1870d93' #os.environ["COGSVCS_KEY"]
 COGSVCS_REGION = 'northcentralus'
 
 # Create vision_client
@@ -34,30 +34,34 @@ app = Flask(__name__)
 def index():
     return render_template("index.html")
 
-@app.route("/translate", methods=["GET", "POST"])
+@app.route("/translate2", methods=["GET", "POST"])
 def translate():
     # Load image or placeholder
     image = get_image(request)
 
     # Set the default for language translation
     target_language = "en"
-    if request.form and "target_language" in request.form:
+    web_url = 'type your url here!!!!! now!!!!'
+    translate_options = 'url'
+    if request.form and ("target_language" in request.form or "web_url" in request.form):
         target_language = request.form["target_language"]
+        web_url = request.form["web_url"]
+        translate_options = request.form["translate_options"]
+    print(49,'now call api with this img url', web_url, translate_options)
 
     # If it"s a GET, just return the form
     if request.method == "GET":
-        return render_template("translate.html", image_uri=image.uri, target_language=target_language)
+        return render_template("translate2.html", image_uri=image.uri, target_language=target_language, web_url=web_url, translate_options=translate_options)
 
     # Create a placeholder for messages
     messages = []
 
     # TODO: Add code to retrieve text from picture
     messages = extract_text_from_image(image.blob, vision_client)
-
     # TODO: Add code to translate text
     messages = translate_text(messages, target_language, COGSVCS_KEY, COGSVCS_REGION)
 
-    return render_template("translate.html", image_uri=image.uri, target_language=target_language, messages=messages)
+    return render_template("translate2.html", image_uri=image.uri, target_language=target_language, web_url=web_url, messages=messages, translate_options=translate_options)
 
 @app.route("/train", methods=["GET", "POST"])
 def train():
@@ -102,8 +106,10 @@ def detect():
     return render_template("detect.html", messages=messages, image_uri=image.uri)
 
 def get_image(request):
-    # Helper class 
+    # Helper class
+
     from image import Image
+    print(99999999999999, Image)
     if request.files:
         return Image(request.files["file"])
     else:
@@ -129,12 +135,47 @@ def extract_text_from_image(image, client):
         print(e)
         return ["Error calling the Computer Vision API"]
 
+# def translate_text(lines, target_language, key, region):
+#     uri ='https://api.cognitive.microsofttranslator.com/' + 'translate?api-version=3.0&to='+ target_language #+ #"https://api.cognitive.microsofttranslator.com/translate?api-version=3.0&to=" + target_language
+
+#     headers = {
+#         'Ocp-Apim-Subscription-Key': '65b074dc3b1a4747bfc0c23203d658fa',
+#         'Ocp-Apim-Subscription-Region':'eastus', #region,
+#         'Content-type': 'application/json'
+#     }
+
+#     input=[]
+
+#     for line in lines:
+#         input.append({ "text": line })
+
+#     try:
+#         response = requests.post(uri, headers=headers, json=input)
+#         print(150)
+#         response.raise_for_status() # Raise exception if call failed
+#         print(152)
+#         results = response.json()
+
+#         translated_lines = []
+
+#         for result in results:
+#             for translated_line in result["translations"]:
+#                 translated_lines.append(translated_line["text"])
+
+#         return translated_lines
+
+#     except requests.exceptions.HTTPError as e:
+#         return ["Error calling the Translator Text API: " + e.strerror]
+
+#     except Exception as e:
+#         return ["Error calling the Translator Text API"]
+
 def translate_text(lines, target_language, key, region):
-    uri = "https://api.cognitive.microsofttranslator.com/translate?api-version=3.0&to=" + target_language
+    uri ='https://api.cognitive.microsofttranslator.com/' + 'translate?api-version=3.0&to='+ target_language #+ #"https://api.cognitive.microsofttranslator.com/translate?api-version=3.0&to=" + target_language
 
     headers = {
-        'Ocp-Apim-Subscription-Key': key,
-        'Ocp-Apim-Subscription-Region': region,
+        'Ocp-Apim-Subscription-Key': '65b074dc3b1a4747bfc0c23203d658fa',
+        'Ocp-Apim-Subscription-Region':'eastus', #region,
         'Content-type': 'application/json'
     }
 
@@ -145,7 +186,9 @@ def translate_text(lines, target_language, key, region):
 
     try:
         response = requests.post(uri, headers=headers, json=input)
+        print(150)
         response.raise_for_status() # Raise exception if call failed
+        print(152)
         results = response.json()
 
         translated_lines = []
@@ -219,7 +262,7 @@ def detect_people(client: FaceClient, person_group_id, image):
 
         # Sort by most likely candidate
         candidates = sorted(candidates, key=(lambda candidate: candidate.confidence), reverse=True)
-        
+
         # Get just the top candidate
         top_candidate = candidates[0]
 
